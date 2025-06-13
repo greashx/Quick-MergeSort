@@ -1,160 +1,161 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main extends JFrame {
-    private JTextField sizeField; //Box to type how many names
-    private JTextArea mergeSortOutput; //Shows Merge Sort names
-    private JTextArea quickSortOutput; //Shows Quick Sort names
-    private JLabel mergeTimeLabel; //Shows time for Merge Sort
-    private JLabel quickTimeLabel; //Shows time for Quick Sort
-    private NameGenerator generator; //Makes random names
 
-    //This sets up the window
+    //GUI Components
+    private JTextField sizeField;
+    private JTextArea mergeSortOutput, quickSortOutput, averageStatsArea;
+    private JLabel mergeTimeLabel, quickTimeLabel;
+    private JButton runButton, complexityButton;
+    private final NameGenerator generator = new NameGenerator();
+
+    //Data lists to store run times for calculating averages
+    private final List<Double> mergeSortTimes = new ArrayList<>();
+    private final List<Double> quickSortTimes = new ArrayList<>();
+
     public Main() {
-        //Give the window a title
-        setTitle("Sorting Tester");
+        super("Sorting Tester");
+        setupUI();
+    }
 
+    private void setupUI() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(600, 500);
+        setSize(800, 600);
         setLocationRelativeTo(null);
 
-        //Initialize the name generator
-        generator = new NameGenerator();
-
-        //Make a box at the top for typing
+        // --- Input Panel (Top) ---
         JPanel inputPanel = new JPanel();
-        JLabel numberText = new JLabel("Number of Names:");
-        inputPanel.add(numberText);
+        inputPanel.add(new JLabel("Number of Names:"));
         sizeField = new JTextField("10000", 10);
         inputPanel.add(sizeField);
+        runButton = new JButton("Run Sorting");
+        inputPanel.add(runButton);
         add(inputPanel, BorderLayout.NORTH);
 
-        //Add a button to start sorting
-        JButton runButton = new JButton("Run Sorting");
-        inputPanel.add(runButton);
+        // --- Output Panel (Center) ---
+        JPanel outputPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        add(outputPanel, BorderLayout.CENTER);
 
-        //Make a box to hold both sorting results
-        JPanel outputPanel = new JPanel();
-        outputPanel.setLayout(new GridLayout(1, 2)); //Two parts side by side
-
-        //Make a box for Merge Sort
-        JPanel mergePanel = new JPanel();
-        mergePanel.setLayout(new BorderLayout());
-        JLabel mergeTitle = new JLabel("Merge Sort Results");
-        mergePanel.add(mergeTitle, BorderLayout.NORTH);
-
-        //Add an area to show sorted names
-        mergeSortOutput = new JTextArea(10, 20);
+        //Merge Sort Panel
+        JPanel mergePanel = new JPanel(new BorderLayout(0, 5));
+        mergePanel.add(new JLabel("Merge Sort Results", SwingConstants.CENTER), BorderLayout.NORTH);
+        mergeSortOutput = new JTextArea();
         mergeSortOutput.setEditable(false);
         mergePanel.add(new JScrollPane(mergeSortOutput), BorderLayout.CENTER);
-        //Merge sort time
-        mergeTimeLabel = new JLabel("Time: 0 ms");
-        mergePanel.add(mergeTimeLabel, BorderLayout.SOUTH);
         outputPanel.add(mergePanel);
 
-        //Make a box for Quick Sort
-        JPanel quickPanel = new JPanel();
-        quickPanel.setLayout(new BorderLayout());
-        JLabel quickTitle = new JLabel("Quick Sort Results");
-        quickPanel.add(quickTitle, BorderLayout.NORTH);
-
-        //Add an area to show sorted names
-        quickSortOutput = new JTextArea(10, 20);
-        quickSortOutput.setEditable(false); // You can't type here
+        //Quick Sort Panel
+        JPanel quickPanel = new JPanel(new BorderLayout(0, 5));
+        quickPanel.add(new JLabel("Quick Sort Results", SwingConstants.CENTER), BorderLayout.NORTH);
+        quickSortOutput = new JTextArea();
+        quickSortOutput.setEditable(false);
         quickPanel.add(new JScrollPane(quickSortOutput), BorderLayout.CENTER);
-
-        //Quick sort time
-        quickTimeLabel = new JLabel("Time: 0 ms");
-        quickPanel.add(quickTimeLabel, BorderLayout.SOUTH);
         outputPanel.add(quickPanel);
 
-
-        add(outputPanel, BorderLayout.CENTER);
-        JPanel bottomPanel = new JPanel();
-
-        //Add a button with info about sorting
-        JButton complexityButton = new JButton("Show Sorting Info");
-        bottomPanel.add(complexityButton);
+        // --- Bottom Panel ---
+        JPanel bottomPanel = new JPanel(new BorderLayout(10, 10));
         add(bottomPanel, BorderLayout.SOUTH);
 
-        //Sets  action of the sort button
-        runButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                runSorting();
-            }
-        });
+        complexityButton = new JButton("Show Sorting Info");
+        bottomPanel.add(complexityButton, BorderLayout.NORTH);
 
-        //Sets action of the info button
-        complexityButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                String info = "Merge Sort:\n" +
-                        "- Time Complexity: O(n log n) average and worst case\n" +
-                        "- Space Complexity: O(n) due to additional arrays\n\n" +
-                        "Quick Sort:\n" +
-                        "- Time Complexity: O(n log n) average, O(n²) worst case\n" +
-                        "- Space Complexity: O(log n) average for stack frames";
-                JOptionPane.showMessageDialog(Main.this, info,
-                        "Sorting Info", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
+        // NEW: Average stats area
+        averageStatsArea = new JTextArea(3, 40);
+        averageStatsArea.setEditable(false);
+        averageStatsArea.setFont(new Font("Monospaced", Font.BOLD, 12));
+        averageStatsArea.setBorder(BorderFactory.createTitledBorder("Run Statistics"));
+        bottomPanel.add(new JScrollPane(averageStatsArea), BorderLayout.CENTER);
+
+        // Panel for individual run times
+        JPanel timeLabelsPanel = new JPanel(new GridLayout(1, 2));
+        mergeTimeLabel = new JLabel("Time: 0 ms");
+        quickTimeLabel = new JLabel("Time: 0 ms");
+        timeLabelsPanel.add(mergeTimeLabel);
+        timeLabelsPanel.add(quickTimeLabel);
+        bottomPanel.add(timeLabelsPanel, BorderLayout.SOUTH);
+
+        // Action Listeners
+        runButton.addActionListener(e -> runSorting());
+
+        complexityButton.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                "Merge Sort Complexity: O(n log n)\nQuick Sort Average Complexity: O(n log n)\nQuick Sort Worst Case: O(n^2)",
+                "Algorithm Complexity",
+                JOptionPane.INFORMATION_MESSAGE));
     }
 
     private void runSorting() {
         try {
-            //Takes the number of names we typed
             int size = Integer.parseInt(sizeField.getText());
             if (size <= 0) {
-                JOptionPane.showMessageDialog(this, "Please enter a positive number.");
+                JOptionPane.showMessageDialog(this, "Please enter a positive number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            //Generate names
-            String[] mergeNames = generator.generateNames(size);
-            String[] quickNames = mergeNames.clone();
+            // Generate a single list of names using the provided NameGenerator logic
+            String[] names = generator.generateNames(size);
 
-            //Merge Sort
-            double startTime = System.nanoTime();
+            // --- Merge Sort ---
+            String[] mergeNames = names.clone();
+            long startTime = System.nanoTime();
             MergeSort.mergeSort(mergeNames);
-            double endTime = System.nanoTime();
-            double mergeTime = (endTime - startTime) / 1_000_000;
+            long endTime = System.nanoTime();
+            double mergeTime = (endTime - startTime) / 1_000_000.0;
+            mergeSortTimes.add(mergeTime); // Add to list
+            mergeTimeLabel.setText(String.format("Time: %.2f ms", mergeTime));
+            updateDisplayText(mergeSortOutput, mergeNames);
 
-            //Display first 100 names
-            String mergeText = "";
-            for (int i = 0; i < Math.min(100, mergeNames.length); i++) {
-                if( i  < Math.min(99, mergeNames.length - 1)) {
-                    mergeText += mergeNames[i] + ", ";
-                }
-            }
-            mergeSortOutput.setText(mergeText);
-            mergeTimeLabel.setText("Time: " + String.format("%.2f", mergeTime) + " ms");
-
-            //Quick Sort
+            // --- Quick Sort ---
+            String[] quickNames = names.clone();
             startTime = System.nanoTime();
             QuickSort.quickSort(quickNames, 0, quickNames.length - 1);
             endTime = System.nanoTime();
-            double quickTime = (endTime - startTime) / 1_000_000;
+            double quickTime = (endTime - startTime) / 1_000_000.0;
+            quickSortTimes.add(quickTime); // Add to list
+            quickTimeLabel.setText(String.format("Time: %.2f ms", quickTime));
+            updateDisplayText(quickSortOutput, quickNames);
 
-            //Display first 100 names
-            String quickText = "";
-            for (int i = 0; i < Math.min(100, quickNames.length); i++) {
-                if( i  < Math.min(99, quickNames.length - 1)) {
-                    quickText += quickNames[i] + ", ";
-                }
-            }
-            quickSortOutput.setText(quickText);
-            quickTimeLabel.setText("Time: " + String.format("%.2f", quickTime) + " ms");
+            // --- UPDATE AVERAGE STATS ---
+            updateAverageTimes();
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Please enter a valid number.");
+            JOptionPane.showMessageDialog(this, "Please enter a valid number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
         }
     }
 
+    private void updateDisplayText(JTextArea textArea, String[] sortedNames) {
+        // Display sorted results (limited to 100 entries for readability)
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < Math.min(100, sortedNames.length); i++) {
+            text.append(sortedNames[i]).append("\n");
+        }
+        if (sortedNames.length > 100) {
+            text.append("...");
+        }
+        textArea.setText(text.toString());
+        textArea.setCaretPosition(0); // Scroll to top
+    }
+
+    private void updateAverageTimes() {
+        // Calculate averages using streams
+        double avgMerge = mergeSortTimes.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        double avgQuick = quickSortTimes.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+
+        // Update the text area
+        averageStatsArea.setText(String.format(
+                "Total Runs: %d\nAverage Merge Sort Time: %.2f ms\nAverage Quick Sort Time: %.2f ms",
+                mergeSortTimes.size(),
+                avgMerge,
+                avgQuick
+        ));
+    }
+
     public static void main(String[] args) {
-        //Thread safe GUI initialization
         SwingUtilities.invokeLater(() -> {
-            new Main().setVisible(true);
+            Main main = new Main();
+            main.setVisible(true);
         });
     }
 }
